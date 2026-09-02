@@ -2,7 +2,7 @@
   "name": "bili-resolver",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "description": "Bilibili Resolver & Proxy Cloudflare Worker",
   "main": "index.js",
   "scripts": {
