@@ -1,7 +1,7 @@
 export default async function handler(req) {
     // Vercel gives us a Node-style request, so req.url may only be "/api/proxy?..."
     const host = req.headers.host || 'localhost';
-    const url = new URL(req.url, https://${host});
+    const url = new URL(req.url, `https://${host}`);
 
     const targetUrl = url.searchParams.get('url');
 
@@ -29,7 +29,7 @@ export default async function handler(req) {
         if (
             !target.hostname.includes('bilibili.com') &&
             !
-          target.hostname.includes('biliapi.net') &&
+            target.hostname.includes('biliapi.net') &&
             !target.hostname.includes('b23.tv')
         ) {
             return new Response('Forbidden', { status: 403 });
@@ -72,7 +72,7 @@ export default async function handler(req) {
         const response = await fetch(targetUrl, init);
 
         const responseHeaders = new Headers(response.headers);
-        responseHeaders.set('Access-Control-Allow-Origin', '');
+        responseHeaders.set('Access-Control-Allow-Origin', '*');
 
         return new Response(response.body, {
             status: response.status,
@@ -86,7 +86,7 @@ export default async function handler(req) {
                 status: 500,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': ''
+                    'Access-Control-Allow-Origin': '*'
                 }
             }
         );
