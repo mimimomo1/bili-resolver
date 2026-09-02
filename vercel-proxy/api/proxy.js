@@ -1,62 +1,48 @@
-export default async function handler(req) {
-    // Vercel gives us a Node-style request, so req.url may only be "/api/proxy?..."
-    const host = req.headers.host || 'localhost';
-    const url = new URL(req.url, `https://${host}`);
+export default async function handler(req, res) {
+    try {
+        const targetUrl = req.query.url;
 
-    const targetUrl = url.searchParams.get('url');
+        if (!targetUrl) {
+            return res.status(400).send('Missing URL parameter');
+        }
 
-    if (!targetUrl) {
-        return new Response('Missing URL parameter', { status: 400 });
-    }
-
-    // Use the Vercel environment variable you already created
-    const expectedToken = process.env.PROXY_TOKEN;
-
-    if (expectedToken) {
+        const expectedToken = process.env.PROXY_TOKEN;
         const providedToken = req.headers['x-proxy-token'];
 
-        if (providedToken !== expectedToken) {
-            return new Response('Unauthorized: Invalid proxy token', {
-                status: 401
-            });
+        if (expectedToken && providedToken !== expectedToken) {
+            return res.status(401).send('Unauthorized');
         }
-    }
 
-    try {
         const target = new URL(targetUrl);
 
-        // Only allow Bilibili-related requests
         if (
             !target.hostname.includes('bilibili.com') &&
-            !
-            target.hostname.includes('biliapi.net') &&
+            !target.hostname.includes('biliapi.net') &&
             !target.hostname.includes('b23.tv')
         ) {
-            return new Response('Forbidden', { status: 403 });
+            return res.status(403).send('Forbidden');
         }
 
-        const headers = new Headers();
+        const headers = {};
 
-        // Node/Vercel request headers are plain object properties
         if (req.headers['user-agent'])
-            headers.set('User-Agent', req.headers['user-agent']);
+            headers['User-Agent'] = req.headers['user-agent'];
 
         if (req.headers['referer'])
-            headers.set('Referer', req.headers['referer']);
+            headers['Referer'] = req.headers['referer'];
 
         if (req.headers['cookie'])
-            headers.set('Cookie', req.headers['cookie']);
+            headers['Cookie'] = req.headers['cookie'];
 
         if (req.headers['origin'])
-            headers.set('Origin', req.headers['origin']);
+            headers['Origin'] = req.headers['origin'];
 
-        const init = {
+        const options = {
             method: req.method,
             headers,
             redirect: 'manual'
         };
 
-        // Read POST body safely if there is one
         if (req.method !== 'GET' && req.method !== 'HEAD') {
             const chunks = [];
 
@@ -65,30 +51,29 @@ export default async function handler(req) {
             }
 
             if (chunks.length > 0) {
-                init.body = Buffer.concat(chunks);
+                options.body = Buffer.concat(chunks);
             }
         }
 
-        const response = await fetch(targetUrl, init);
+        const upstream = await fetch(targetUrl, options);
 
-        const responseHeaders = new Headers(response.headers);
-        responseHeaders.set('Access-Control-Allow-Origin', '*');
+        res.status(upstream.status);
 
-        return new Response(response.body, {
-            status: response.status,
-            headers: responseHeaders
+        upstream.headers.forEach((value, key) => {
+            try {
+                res.setHeader(key, value);
+            } catch {}
         });
 
+        res.setHeader('Access-Control-Allow-Origin', '*');
+
+        const body = Buffer.from(await upstream.arrayBuffer());
+        return res.send(body);
+
     } catch (error) {
-        return new Response(
-            JSON.stringify({ error: error.message }),
-            {
-                status: 500,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                }
-            }
-        );
+        console.error(error);
+        return res.status(500).json({
+            error: error.message
+        });
     }
 }
