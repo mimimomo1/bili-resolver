@@ -1,6 +1,6 @@
 
 export default async function handler(req) {
-  const url = new URL(req.url);
+  const url = new URL(req.url, 'https://' + req.headers.get('host'));
   const targetUrl = url.searchParams.get('url');
 
   if (!targetUrl) {
