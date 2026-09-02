@@ -43,18 +43,6 @@ export default async function handler(req, res) {
             redirect: 'manual'
         };
 
-        if (req.method !== 'GET' && req.method !== 'HEAD') {
-            const chunks = [];
-
-            for await (const chunk of req) {
-                chunks.push(Buffer.from(chunk));
-            }
-
-            if (chunks.length > 0) {
-                options.body = Buffer.concat(chunks);
-            }
-        }
-
         const upstream = await fetch(targetUrl, options);
 
         res.status(upstream.status);
