@@ -8,7 +8,7 @@ export default async function handler(req) {
   }
 
   // 鉴权逻辑：比对硬编码的 Token（因为此代码部署在 private 仓库）
-  const expectedToken = 'bili_token_vercel'; // 请修改为你自己的密码
+  const expectedToken = 'process.env.PROXY_TOKEN'; // 请修改为你自己的密码
   if (expectedToken) {
     const providedToken = req.headers.get('x-proxy-token');
     if (providedToken !== expectedToken) {
